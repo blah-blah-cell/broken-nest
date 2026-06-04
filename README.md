@@ -207,7 +207,29 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 7. Supply Chain Context
+## 7. Beyond Prototype Pollution: Arbitrary State Manipulation
+
+Exposing `nested-property.set()` to user input introduces fundamental design flaws that go beyond prototype pollution. By controlling the `path`, an attacker can bypass prototype guards entirely and directly manipulate the target object.
+
+### Mass Assignment (Privilege Escalation)
+If an application uses `nested-property` to apply JSON updates to a backend object (like a User Profile), an attacker can overwrite sibling properties that were not intended to be exposed.
+**PoC:** `node mass-assignment-poc.js`
+- **Path:** `"role"`
+- **Impact:** An attacker changing their profile theme can silently overwrite their own role to `"superadmin"`, leading to instant Privilege Escalation.
+
+### Type Confusion (Forcing Arrays)
+The `nested-property` traversal engine contains logic to implicitly create Arrays if a path segment is numeric:
+```javascript
+var nextPropIsNumber = Number.isInteger(Number(segments[index + 1]));
+if (nextPropIsNumber) { currentObject[currentProperty] = []; }
+```
+**PoC:** `node type-confusion-poc.js`
+- **Path:** `"settings.0.theme"`
+- **Impact:** If `settings` was previously undefined, the engine forcefully instantiates it as an `Array` instead of an `Object`. Any downstream application logic that expects `settings` to be an object (e.g., calling `Object.keys(user.settings)`) will now crash or misbehave, leading to Application Logic Corruption or Denial of Service.
+
+---
+
+## 8. Supply Chain Context
 
 `nested-property` is a transitive dependency of `webdav` v5.9.0 (and other packages). Any application that:
 
@@ -222,7 +244,7 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 8. Discovery Methodology
+## 9. Discovery Methodology
 
 1. **Source analysis:** Read `nested-property/dist/nested-property.js`, identified the guard as a single strict identity check against `Reflect.getPrototypeOf({})`.
 2. **Guard boundary mapping:** Determined the guard exclusively matches `Object.prototype` — nothing else in the prototype chain.
@@ -231,7 +253,7 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 9. Remediation
+## 10. Remediation
 
 See [`fix-recommendation.js`](./fix-recommendation.js) for full patched implementation.
 
@@ -263,9 +285,23 @@ const isSafe = (path) => !path.split(".").some(s => DANGEROUS_KEYS.includes(s));
 
 ---
 
-## 10. Status
+## 11. Disclosure Timeline
 
-**Unpatched as of June 4, 2026.** Public disclosure made after 60+ days with no response from the maintainer. Treat all `nested-property` v4.0.0 usage with user-controlled paths as vulnerable.
+| Date | Action |
+|---|---|
+| April 2, 2026 | Vulnerability discovered and confirmed on Node.js v22.22.2 |
+| April 2, 2026 | Snyk responsible disclosure filed via report@snyk.io |
+| April 2, 2026 | MITRE CVE Program request filed (CVE Request 2019608) |
+| April 3, 2026 | Direct disclosure to webdav maintainer Perry Mitchell |
+| May 4, 2026 | Snyk acknowledges receipt, begins maintainer contact |
+| May 11, 2026 | Snyk declines advisory — classifies as JS semantics, not package scope |
+| June 4, 2026 | Public disclosure — 60+ days elapsed, no patch or maintainer response |
+
+---
+
+## 12. Status
+
+**Unpatched as of June 4, 2026.** CVE assignment pending (MITRE CVE Request 2019608). Public disclosure made after 60+ days with no response from the maintainer. Treat all `nested-property` v4.0.0 usage with user-controlled paths as vulnerable.
 
 ---
 
