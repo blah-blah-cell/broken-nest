@@ -1,4 +1,4 @@
-# Prototype Pollution Research: Incomplete Fix Bypass in `nested-property` v4.0.0
+# Broken Nest: Prototype Pollution Bypass in `nested-property` v4.0.0
 
 **Date:** April 2, 2026  
 **Researcher:** Ojas Mehta  
@@ -6,8 +6,8 @@
 **License:** MIT  
 **Disclosure status:**
 - Snyk: Disclosed April 2, 2026 — advisory declined (classified as JS semantics, not package scope)
-- MITRE CVE Program: Request filed April 2, 2026 — acknowledgment received (CVE Request 2019608)
 - webdav maintainer (Perry Mitchell): Notified April 3, 2026 with full PoC and remediation guidance
+
 > **⚠️ DISCLAIMER:** Snyk has officially declined to issue a security advisory for this vulnerability, classifying it as expected "JavaScript semantics" rather than a package-scoped vulnerability. Automated vulnerability scanners will **not** flag this package as vulnerable. Use at your own risk.
 
 ---
@@ -30,8 +30,8 @@ All **four attack vectors** below are **confirmed reproducible** on the latest p
 ### Step 1 — Clone this repository
 
 ```bash
-git clone https://github.com/blah-blah-cell/nested-property-prototype-pollution-research.git
-cd nested-property-prototype-pollution-research
+git clone https://github.com/blah-blah-cell/broken-nest.git
+cd broken-nest
 ```
 
 ### Step 2 — Install dependencies
@@ -263,23 +263,9 @@ const isSafe = (path) => !path.split(".").some(s => DANGEROUS_KEYS.includes(s));
 
 ---
 
-## 10. Disclosure Timeline
+## 10. Status
 
-| Date | Action |
-|---|---|
-| April 2, 2026 | Vulnerability discovered and confirmed on Node.js v22.22.2 |
-| April 2, 2026 | Snyk responsible disclosure filed via report@snyk.io |
-| April 2, 2026 | MITRE CVE Program request filed (CVE Request 2019608) |
-| April 3, 2026 | Direct disclosure to webdav maintainer Perry Mitchell |
-| May 4, 2026 | Snyk acknowledges receipt, begins maintainer contact |
-| May 11, 2026 | Snyk declines advisory — classifies as JS semantics, not package scope |
-| June 4, 2026 | Public disclosure — 60+ days elapsed, no patch or maintainer response |
-
----
-
-## 11. Status
-
-**Unpatched as of June 4, 2026.** CVE assignment pending (MITRE CVE Request 2019608). Public disclosure made after 60+ days with no response from the maintainer. Treat all `nested-property` v4.0.0 usage with user-controlled paths as vulnerable.
+**Unpatched as of June 4, 2026.** Public disclosure made after 60+ days with no response from the maintainer. Treat all `nested-property` v4.0.0 usage with user-controlled paths as vulnerable.
 
 ---
 
