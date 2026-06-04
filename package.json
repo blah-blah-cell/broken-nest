@@ -1,0 +1,25 @@
+{
+  "name": "nested-property-prototype-pollution-research",
+  "version": "1.0.0",
+  "description": "PoC and remediation research for prototype pollution bypass in nested-property v4.0.0",
+  "private": true,
+  "scripts": {
+    "poc": "node poc.js",
+    "fix": "node fix-recommendation.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "nested-property": "4.0.0"
+  },
+  "keywords": [
+    "security",
+    "prototype-pollution",
+    "cve",
+    "vulnerability",
+    "nested-property"
+  ],
+  "author": "Ojas Mehta",
+  "license": "MIT"
+}

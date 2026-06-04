@@ -3,7 +3,7 @@
 **Date:** April 2, 2026  
 **Researcher:** Ojas Mehta  
 **Package:** [`nested-property`](https://www.npmjs.com/package/nested-property) (NPM) — v4.0.0 (latest)  
-**Repo visibility:** PUBLIC 
+**License:** MIT  
 **Disclosure status:**
 - Snyk: Disclosed April 2, 2026 — advisory declined (classified as JS semantics, not package scope)
 - MITRE CVE Program: Request filed April 2, 2026 — acknowledgment received (CVE Request 2019608)
@@ -33,15 +33,13 @@ git clone https://github.com/blah-blah-cell/nested-property-prototype-pollution-
 cd nested-property-prototype-pollution-research
 ```
 
-### Step 2 — Install the vulnerable package
-
-Pin exactly to v4.0.0 — this is the version with the incomplete fix:
+### Step 2 — Install dependencies
 
 ```bash
-npm install nested-property@4.0.0
+npm install
 ```
 
-Verify the installed version:
+This installs `nested-property@4.0.0` exactly as pinned in `package.json`. Verify:
 
 ```bash
 npm list nested-property
@@ -51,7 +49,8 @@ npm list nested-property
 ### Step 3 — Run the PoC
 
 ```bash
-node poc.js
+npm run poc
+# or: node poc.js
 ```
 
 ### Expected output
@@ -100,7 +99,8 @@ checkAdmin(normalUser): true
 Run the remediation validation script to confirm both proposed defenses block all 4 vectors:
 
 ```bash
-node fix-recommendation.js
+npm run fix
+# or: node fix-recommendation.js
 ```
 
 ### Expected fix output
@@ -272,14 +272,14 @@ const isSafe = (path) => !path.split(".").some(s => DANGEROUS_KEYS.includes(s));
 | April 3, 2026 | Direct disclosure to webdav maintainer Perry Mitchell |
 | May 4, 2026 | Snyk acknowledges receipt, begins maintainer contact |
 | May 11, 2026 | Snyk declines advisory — classifies as JS semantics, not package scope |
-| June 4, 2026 | MITRE CVE assignment pending |
+| June 4, 2026 | Public disclosure — 60+ days elapsed, no patch or maintainer response |
 
 ---
 
 ## 11. Status
 
-**Unpatched in v4.0.0.** Maintainer has been unresponsive since approximately 2020. Active 0-Day as of June 2026.
+**Unpatched as of June 4, 2026.** CVE assignment pending (MITRE CVE Request 2019608). Public disclosure made after 60+ days with no response from the maintainer. Treat all `nested-property` v4.0.0 usage with user-controlled paths as vulnerable.
 
 ---
 
-*Research by Ojas Mehta. For questions, contact via GitHub.*
+*Research by Ojas Mehta. For questions, contact via GitHub. See [SECURITY.md](./SECURITY.md) for ethical use policy.*
