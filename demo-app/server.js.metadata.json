@@ -1,0 +1,5 @@
+{
+  "artifactType":  "ARTIFACT_TYPE_OTHER",
+  "summary":  "Update server to expose an array field for direct Array prototype pollution",
+  "updatedAt":  "2026-06-04T13:56:38.010126Z"
+}
