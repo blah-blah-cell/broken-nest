@@ -79,19 +79,14 @@ Researcher: Ojas Mehta | Date: April 2, 2026
 === All 4 vectors confirmed. Object.prototype guard bypassed silently. ===
 Note: No ObjectPrototypeMutationError was thrown for any of the above.
 
---- Bonus: Process-wide persistence demo ---
-attacker.isAdmin (raw): true
-normalUser.isAdmin (raw): true
-checkAdmin(attacker): true
-checkAdmin(normalUser): true
-[].isAdmin: true
+
 ```
 
 **What to look for:**
 - `Array.prototype.polluted: true` — guard bypassed for arrays (Vector 1)
 - `Object.prototype.polluted: undefined` — confirms `Object.prototype` is protected, everything else is not
 - `[1,2,3].toString(): HIJACKED` — native method silently overridden (Vector 3)
-- `checkAdmin(attacker): true` on a fresh `{ id: 999, name: "attacker" }` object — auth bypass demonstrated
+
 - **No `ObjectPrototypeMutationError` anywhere** — all vectors succeed silently
 
 ### Step 4 — Verify the fix

