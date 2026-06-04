@@ -8,6 +8,7 @@
 - Snyk: Disclosed April 2, 2026 — advisory declined (classified as JS semantics, not package scope)
 - MITRE CVE Program: Request filed April 2, 2026 — acknowledgment received (CVE Request 2019608)
 - webdav maintainer (Perry Mitchell): Notified April 3, 2026 with full PoC and remediation guidance
+> **⚠️ DISCLAIMER:** Snyk has officially declined to issue a security advisory for this vulnerability, classifying it as expected "JavaScript semantics" rather than a package-scoped vulnerability. Automated vulnerability scanners will **not** flag this package as vulnerable. Use at your own risk.
 
 ---
 
@@ -196,6 +197,11 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 | Function.prototype pollution (middleware, handlers, callbacks) | All functions in the process | High |
 | Process-wide persistence (survives all requests until restart) | Entire application | Critical |
 | Silent — no throw, no log | Unlike `Object.prototype` guard | Critical |
+
+### Real-World Exploitation Scenarios
+- **Instant Denial of Service (DoS):** By overwriting an array method like `Array.prototype.map` with a non-function value, the entire Node.js server will crash with a `TypeError` the next time the application maps an array.
+- **Defeating Security Filters:** Applications often rely on arrays for whitelists (`allowedRoles.includes(user.role)`). An attacker can pollute `Array.prototype.includes = () => true`, instantly bypassing authorization checks process-wide.
+- **Remote Code Execution (RCE):** If the backend renders HTML templates (like Pug, EJS, or Handlebars), an attacker can pollute `Function.prototype` or `Array.prototype.push` to hijack the template compilation engine and inject arbitrary JavaScript, achieving full server compromise.
 
 **Key distinguisher:** The `Object.prototype` guard in v4.0.0 throws a named `ObjectPrototypeMutationError`. These vectors succeed **silently** — no exception is raised, no log is written. Detection requires active monitoring of prototype chains.
 
