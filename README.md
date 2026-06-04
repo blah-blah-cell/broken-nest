@@ -3,7 +3,7 @@
 **Date:** April 2, 2026  
 **Researcher:** Ojas Mehta  
 **Package:** [`nested-property`](https://www.npmjs.com/package/nested-property) (NPM) — v4.0.0 (latest)  
-**Repo visibility:** 🔒 Private  
+**Repo visibility:** PUBLIC 
 **Disclosure status:**
 - Snyk: Disclosed April 2, 2026 — advisory declined (classified as JS semantics, not package scope)
 - MITRE CVE Program: Request filed April 2, 2026 — acknowledgment received (CVE Request 2019608)
