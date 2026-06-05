@@ -207,9 +207,11 @@ See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.
 
 ---
 
-## 7. Beyond Prototype Pollution: Arbitrary State Manipulation
+## 7. Beyond Prototype Pollution: Dangerous Developer Pitfalls
 
-Exposing `nested-property.set()` to user input introduces fundamental design flaws that go beyond prototype pollution. By controlling the `path`, an attacker can bypass prototype guards entirely and directly manipulate the target object.
+It is important to note that security triage teams and CVE assigning authorities generally classify the following issues not as flaws in `nested-property` itself, but as **developer implementation flaws**. Because `nested-property` is a low-level utility designed specifically to dynamically set properties via strings, its entire purpose is arbitrary manipulation. 
+
+If a developer passes raw, unfiltered user input directly into `nested-property.set()`, they are writing insecure code. The function is simply doing exactly what it was programmed to do. However, developers must be acutely aware of two major pitfalls when using this library:
 
 ### Mass Assignment (Privilege Escalation)
 If an application uses `nested-property` to apply JSON updates to a backend object (like a User Profile), an attacker can overwrite sibling properties that were not intended to be exposed.
@@ -229,7 +231,58 @@ if (nextPropIsNumber) { currentObject[currentProperty] = []; }
 
 ---
 
-## 8. Supply Chain Context
+## 8. Fail-Open Error Handling (CWE-390) Enables Mass Assignment
+
+Security triage teams generally classify mass assignment as a "developer implementation flaw," asserting that developers must validate input before processing. However, `nested-property` contains a critical logic flaw that undermines this very defense: **Fail-Open Error Handling**.
+
+The library wraps its traversal engine (including the `hasOwn` validation method) in generic `try/catch` blocks that silently swallow `TypeError` exceptions and return `false`.
+
+```javascript
+// From nested-property.js hasOwn implementation:
+try {
+  // ...
+  has = currentObject.hasOwnProperty(currentProperty); // POINT OF FAILURE
+  // ...
+} catch (err) {
+  return false; // SILENT FAIL-OPEN
+}
+```
+
+### Bypassing Developer Validation
+An attacker can deliberately trigger this internal `TypeError` by shadowing the `hasOwnProperty` method in a standard JSON payload. This trick causes the library to fail open, returning `false`, and actively lying to the developer's security filter.
+
+Consider a developer securely guarding their profile update endpoint:
+```javascript
+// Developer correctly validates input to prevent Mass Assignment
+if (np.hasOwn(req.body, "role")) {
+    return res.status(403).send("Forbidden property");
+}
+
+// Since validation passed, apply updates safely
+for (const key of Object.keys(req.body)) {
+    np.set(req.user, key, req.body[key]);
+}
+```
+
+The attacker sends:
+```json
+{
+  "role": "admin",
+  "hasOwnProperty": 1
+}
+```
+
+1. `np.hasOwn` tries to call `currentObject.hasOwnProperty("role")`.
+2. A `TypeError` is thrown because `1` is not a function.
+3. The library's `catch` block swallows the error and silently returns `false`.
+4. The security filter is bypassed. The `role` property is successfully overwritten to `admin`.
+
+**PoC:** `node fail-open-poc/poc.js`
+This combined exploit chain definitively proves that the vulnerability lies within `nested-property`'s internal logic, not just developer misuse.
+
+---
+
+## 9. Supply Chain Context
 
 `nested-property` is a transitive dependency of `webdav` v5.9.0 (and other packages). Any application that:
 
@@ -244,16 +297,18 @@ if (nextPropIsNumber) { currentObject[currentProperty] = []; }
 
 ---
 
-## 9. Discovery Methodology
+## 10. Discovery Methodology
 
 1. **Source analysis:** Read `nested-property/dist/nested-property.js`, identified the guard as a single strict identity check against `Reflect.getPrototypeOf({})`.
 2. **Guard boundary mapping:** Determined the guard exclusively matches `Object.prototype` — nothing else in the prototype chain.
 3. **Vector enumeration:** Systematically tested non-plain-object roots (`[]`, `function(){}`) and indirect traversal paths (`__proto__`, `constructor.__proto__`).
 4. **Exploitability confirmation:** Verified method hijacking via `Array.prototype.toString` override; confirmed scope is process-wide and persistent.
+5. **Logic Analysis:** Identified generic `try/catch` fail-open blocks in the traversal engine that swallow `TypeErrors`.
+6. **Exploit Chain:** Combined the fail-open behavior with property shadowing to demonstrate bypassing developer validation to achieve Mass Assignment.
 
 ---
 
-## 10. Remediation
+## 11. Remediation
 
 See [`fix-recommendation.js`](./fix-recommendation.js) for full patched implementation.
 
@@ -281,11 +336,14 @@ const DANGEROUS_KEYS = ["__proto__", "constructor", "prototype"];
 const isSafe = (path) => !path.split(".").some(s => DANGEROUS_KEYS.includes(s));
 ```
 
-**Both defenses should be applied together.**
+### Fix 3 — Remove Generic Catch Blocks
+Remove the generic `try/catch` blocks from `hasOwn` and `getNestedProperty`. Errors like `TypeError` must be allowed to propagate to the calling application so it knows the input is invalid. Do not swallow exceptions and return default values.
+
+**All defenses should be applied together.**
 
 ---
 
-## 11. Disclosure Timeline
+## 12. Disclosure Timeline
 
 | Date | Action |
 |---|---|
@@ -299,9 +357,9 @@ const isSafe = (path) => !path.split(".").some(s => DANGEROUS_KEYS.includes(s));
 
 ---
 
-## 12. Status
+## 13. Status
 
-**Unpatched as of June 4, 2026.** CVE assignment pending (MITRE CVE Request 2019608). Public disclosure made after 60+ days with no response from the maintainer. Treat all `nested-property` v4.0.0 usage with user-controlled paths as vulnerable.
+**Unpatched as of June 4, 2026.** CVE assignment pending (MITRE CVE Request 2019608). The initial prototype pollution advisory was declined by Snyk. A secondary disclosure regarding the CWE-390 Fail-Open vulnerability (bypassing developer validation) has been prepared. Treat all `nested-property` v4.0.0 usage with user-controlled paths or payloads as vulnerable.
 
 ---
 
