@@ -4,7 +4,7 @@
   "description": "PoC and remediation research for prototype pollution bypass in nested-property v4.0.0",
   "private": true,
   "scripts": {
-    "poc": "node poc.js",
+    "poc": "node pocs/prototype-pollution-poc.js",
     "fix": "node fix-recommendation.js"
   },
   "engines": {

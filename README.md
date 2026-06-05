@@ -51,7 +51,7 @@ npm list nested-property
 
 ```bash
 npm run poc
-# or: node poc.js
+# or: node pocs/prototype-pollution-poc.js
 ```
 
 ### Expected output
@@ -172,7 +172,7 @@ np.set({ data: [] }, "data.__proto__.toString", () => "HIJACKED");
 
 ## 5. Full PoC
 
-See [`poc.js`](./poc.js) — runnable on Node.js v16+ with `nested-property@4.0.0`.
+See [`pocs/prototype-pollution-poc.js`](./pocs/prototype-pollution-poc.js) — runnable on Node.js v16+ with `nested-property@4.0.0`.
 
 **Confirmed output:**
 ```
@@ -215,7 +215,7 @@ If a developer passes raw, unfiltered user input directly into `nested-property.
 
 ### Mass Assignment (Privilege Escalation)
 If an application uses `nested-property` to apply JSON updates to a backend object (like a User Profile), an attacker can overwrite sibling properties that were not intended to be exposed.
-**PoC:** `node mass-assignment-poc.js`
+**PoC:** `node pocs/mass-assignment-poc.js`
 - **Path:** `"role"`
 - **Impact:** An attacker changing their profile theme can silently overwrite their own role to `"superadmin"`, leading to instant Privilege Escalation.
 
@@ -225,7 +225,7 @@ The `nested-property` traversal engine contains logic to implicitly create Array
 var nextPropIsNumber = Number.isInteger(Number(segments[index + 1]));
 if (nextPropIsNumber) { currentObject[currentProperty] = []; }
 ```
-**PoC:** `node type-confusion-poc.js`
+**PoC:** `node pocs/type-confusion-poc.js`
 - **Path:** `"settings.0.theme"`
 - **Impact:** If `settings` was previously undefined, the engine forcefully instantiates it as an `Array` instead of an `Object`. Any downstream application logic that expects `settings` to be an object (e.g., calling `Object.keys(user.settings)`) will now crash or misbehave, leading to Application Logic Corruption or Denial of Service.
 
@@ -277,7 +277,7 @@ The attacker sends:
 3. The library's `catch` block swallows the error and silently returns `false`.
 4. The security filter is bypassed. The `role` property is successfully overwritten to `admin`.
 
-**PoC:** `node fail-open-poc/poc.js`
+**PoC:** `node pocs/fail-open-poc.js`
 This combined exploit chain definitively proves that the vulnerability lies within `nested-property`'s internal logic, not just developer misuse.
 
 ---
