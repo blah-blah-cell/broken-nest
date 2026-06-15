@@ -1,7 +1,5 @@
 # Broken Nest: Prototype Pollution Bypass in `nested-property` v4.0.0
 
-**Date:** April 2, 2026  
-**Researcher:** Ojas Mehta  
 **Package:** [`nested-property`](https://www.npmjs.com/package/nested-property) (NPM) — v4.0.0 (latest)  
 **License:** MIT  
 **Disclosure status:**
@@ -58,7 +56,6 @@ npm run poc
 
 ```
 === nested-property v4.0.0 — Prototype Pollution Bypass PoC ===
-Researcher: Ojas Mehta | Date: April 2, 2026
 
 --- Vector 1: Array.prototype via __proto__ ---
 [1] Array.prototype.polluted: true
@@ -79,7 +76,6 @@ Researcher: Ojas Mehta | Date: April 2, 2026
 
 === All 4 vectors confirmed. Object.prototype guard bypassed silently. ===
 Note: No ObjectPrototypeMutationError was thrown for any of the above.
-
 
 ```
 
@@ -359,8 +355,8 @@ Remove the generic `try/catch` blocks from `hasOwn` and `getNestedProperty`. Err
 
 ## 13. Status
 
-**Unpatched as of June 4, 2026.** CVE assignment pending (MITRE CVE Request 2019608). The initial prototype pollution advisory was declined by Snyk. A secondary disclosure regarding the CWE-390 Fail-Open vulnerability (bypassing developer validation) has been prepared. Treat all `nested-property` v4.0.0 usage with user-controlled paths or payloads as vulnerable.
+**Unpatched as of June 4, 2026.** CVE assignment pending (MITRE CVE Request 2019608). Treat all `nested-property` v4.0.0 usage with user-controlled paths or payloads as vulnerable.
 
 ---
 
-*Research by Ojas Mehta. For questions, contact via GitHub. See [SECURITY.md](./SECURITY.md) for ethical use policy.*
+*For questions, contact via GitHub. See [SECURITY.md](./SECURITY.md) for ethical use policy.*
