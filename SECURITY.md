@@ -1,29 +1,40 @@
 # Security & Ethical Use Policy
 
-This repository contains proof-of-concept code demonstrating a prototype pollution vulnerability in `nested-property` v4.0.0.
+This repository ships proof‑of‑concept material around a prototype pollution issue in `nested-property@4.0.0`.
+The intent is to make the behaviour easy to reproduce and to give maintainers and downstream users something concrete
+they can run in their own environments.
 
-## Intended Use
+## Intended Audience and Use
 
-This research is published for **educational and defensive security purposes only**:
+The code and notes here are aimed at:
 
-- To help developers understand the attack surface of incomplete prototype pollution guards
-- To enable security researchers to reproduce and validate the findings
-- To support the CVE assignment process (MITRE CVE Request 2019608)
-- To provide maintainers and downstream users with actionable remediation guidance
+- Developers who need to understand how incomplete prototype guards can still be reached from user‑controlled data.
+- Security engineers and researchers who want a compact, runnable testbed for the bug.
+- Triage teams and coordinators involved in CVE assignment and supply‑chain risk review.
 
-## Restrictions
+The focus is defensive: surface the behaviour, document the impact, and outline a patch sketch.
 
-**Do not use any code or techniques in this repository against systems you do not own or have explicit written permission to test.** Unauthorized use against third-party systems may violate the Computer Fraud and Abuse Act (CFAA), the UK Computer Misuse Act, or equivalent laws in your jurisdiction.
+## Legal and Ethical Boundaries
 
-## Responsible Disclosure
+Do not use these techniques against systems you do not own or operate, or where you do not have clear written permission to test.
+Running prototype‑pollution payloads against third‑party services without authorisation can trigger computer‑misuse and anti‑hacking laws
+(CFAA, UK Computer Misuse Act, and similar statutes in other jurisdictions).
 
-This vulnerability was disclosed responsibly:
+If you are experimenting locally, keep it to disposable test environments or isolated lab setups.
 
-- The `nested-property` maintainer was notified directly on April 3, 2026
-- Snyk was notified on April 2, 2026
-- MITRE CVE Program was contacted on April 2, 2026
-- Public disclosure was made on June 4, 2026, after 60+ days with no patch or response from the maintainer
+## Disclosure Notes
 
-## Reporting New Vulnerabilities
+The underlying issue has been reported to:
 
-If you discover a new vulnerability related to this research, please contact the researcher via GitHub before publishing.
+- The `nested-property` maintainer.
+- Snyk.
+- MITRE’s CVE Program.
+- The maintainer of `webdav`, which consumes `nested-property` as a dependency.
+
+Public material in this repository was published after standard disclosure windows elapsed without an upstream patch.
+
+## Coordinated Follow‑up
+
+If you discover related issues or have data points that help close the remaining gaps in upstream code,
+open an issue on this repository or reach out via GitHub before publishing exploit details elsewhere.
+The goal is to keep the discussion technical and focused on getting robust fixes into the ecosystem.
