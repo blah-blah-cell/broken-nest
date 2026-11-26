@@ -1,40 +1,29 @@
 # Security & Ethical Use Policy
 
-This repository ships proof‑of‑concept material around a prototype pollution issue in `nested-property@4.0.0`.
-The intent is to make the behaviour easy to reproduce and to give maintainers and downstream users something concrete
-they can run in their own environments.
+This repository contains proof-of-concept reproductions for an incomplete prototype pollution fix in `nested-property@4.0.0`, along with a defensive patch sketch (`fix-recommendation.js`).
 
 ## Intended Audience and Use
 
-The code and notes here are aimed at:
+This material is meant for:
 
-- Developers who need to understand how incomplete prototype guards can still be reached from user‑controlled data.
-- Security engineers and researchers who want a compact, runnable testbed for the bug.
-- Triage teams and coordinators involved in CVE assignment and supply‑chain risk review.
+- Maintainers and downstream developers checking whether their usage of `nested-property` is affected.
+- Security engineers and triage teams reproducing the issue during CVE review or supply-chain audits.
 
-The focus is defensive: surface the behaviour, document the impact, and outline a patch sketch.
+## Boundaries
 
-## Legal and Ethical Boundaries
-
-Do not use these techniques against systems you do not own or operate, or where you do not have clear written permission to test.
-Running prototype‑pollution payloads against third‑party services without authorisation can trigger computer‑misuse and anti‑hacking laws
-(CFAA, UK Computer Misuse Act, and similar statutes in other jurisdictions).
-
-If you are experimenting locally, keep it to disposable test environments or isolated lab setups.
+Only run these scripts locally or against systems you own and have explicit authorization to test. Using prototype pollution payloads against third-party systems without permission is unauthorized and may violate applicable computer misuse laws.
 
 ## Disclosure Notes
 
-The underlying issue has been reported to:
+The issue was reported to:
 
-- The `nested-property` maintainer.
-- Snyk.
-- MITRE’s CVE Program.
-- The maintainer of `webdav`, which consumes `nested-property` as a dependency.
+- The `nested-property` maintainer
+- Snyk
+- MITRE CVE Program
+- The maintainer of `webdav` (downstream consumer)
 
-Public material in this repository was published after standard disclosure windows elapsed without an upstream patch.
+This repository was published after standard disclosure windows elapsed without an upstream fix.
 
-## Coordinated Follow‑up
+## Follow-up
 
-If you discover related issues or have data points that help close the remaining gaps in upstream code,
-open an issue on this repository or reach out via GitHub before publishing exploit details elsewhere.
-The goal is to keep the discussion technical and focused on getting robust fixes into the ecosystem.
+If you find related edge cases or are coordinating an upstream patch, open an issue on this repository.

@@ -1,31 +1,25 @@
 # Broken Nest: Incomplete Prototype Pollution Fix in `nested-property` v4.0.0
 
-**Package:** [`nested-property`](https://www.npmjs.com/package/nested-property) — v4.0.0 (latest)
+**Package:** [`nested-property`](https://www.npmjs.com/package/nested-property) v4.0.0 (latest)
 **License:** MIT
 
-This repository documents and reproduces a bypass of the prototype pollution fix that shipped in `nested-property` v4.0.0.
-The goal is to provide a minimal, reviewer-friendly codebase that shows how the current guard only protects `Object.prototype`,
-while leaving other built‑in prototypes such as `Array.prototype` and `Function.prototype` writable from untrusted input.
-
-The work is written from the perspective of an independent security researcher who is analyzing a regression in a previously reported issue,
-and is intended to be readable by maintainers, security triage teams, and other researchers.
+This repo reproduces a bypass of the prototype pollution guard shipped in `nested-property` v4.0.0.
+The v4.0.0 check only blocks writes to `Object.prototype`, leaving other built-in prototypes (`Array.prototype`, `Function.prototype`, etc.) writable when paths come from untrusted input.
 
 ---
 
 ## 1. Technical Summary
 
-The v4.0.0 release introduced a guard that throws `ObjectPrototypeMutationError` when the traversal engine attempts to write into `Object.prototype`.
-However, the check is implemented as a strict identity comparison against `Reflect.getPrototypeOf({})`, which is exactly `Object.prototype`.
-This leaves the rest of the prototype chain unprotected: `Array.prototype`, `Function.prototype`, and other built‑ins remain writable via crafted paths.
+`nested-property` v4.0.0 added a guard that throws `ObjectPrototypeMutationError` if traversal hits `Object.prototype`.
+Because the check uses strict identity against `Reflect.getPrototypeOf({})` (which is only `Object.prototype`), other built-in prototypes are not caught.
 
-Using `nested-property.set()` with non‑plain‑object roots and paths that walk through `__proto__` or `constructor.__proto__`,
-an attacker can:
+Calling `nested-property.set()` on a non-plain-object root with paths walking `__proto__` or `constructor.__proto__` allows:
 
-- Flip process‑wide flags on `Array.prototype`
-- Override methods such as `Array.prototype.toString`
-- Attach new properties to `Function.prototype`
+- Setting process-wide properties on `Array.prototype`
+- Overriding methods such as `Array.prototype.toString`
+- Attaching properties to `Function.prototype`
 
-All four proof‑of‑concept vectors in this repository reproduce that behaviour against `nested-property@4.0.0` on current Node.js runtimes.
+All four vectors in `pocs/` reproduce against `nested-property@4.0.0` on current Node.js runtimes.
 
 ---
 
@@ -33,7 +27,7 @@ All four proof‑of‑concept vectors in this repository reproduce that behaviou
 
 ### 2.1 Environment
 
-- Node.js v16 or higher
+- Node.js v16+
 - npm
 
 ### 2.2 Clone and install
@@ -44,7 +38,7 @@ cd broken-nest
 npm install
 ```
 
-The `package.json` pins `nested-property@4.0.0`. You can verify the version with:
+`package.json` pins `nested-property@4.0.0`. Verify with:
 
 ```bash
 npm list nested-property
@@ -82,13 +76,13 @@ Expected output (abridged):
 [4] ({}).injected: undefined
 ```
 
-This demonstrates that the `Object.prototype` guard triggers correctly, but the same write operations against `Array.prototype` and `Function.prototype` succeed silently.
+The `Object.prototype` guard triggers as expected, while the equivalent writes to `Array.prototype` and `Function.prototype` succeed silently.
 
 ---
 
 ## 3. Root Cause
 
-In `nested-property/dist/nested-property.js` the prototype guard is implemented as:
+In `nested-property/dist/nested-property.js`, the guard is:
 
 ```js
 if (currentObject === Reflect.getPrototypeOf({})) {
@@ -96,71 +90,60 @@ if (currentObject === Reflect.getPrototypeOf({})) {
 }
 ```
 
-`Reflect.getPrototypeOf({})` returns `Object.prototype`, so this check only ever matches a single object instance.
-During traversal, when `currentObject` is `Array.prototype`, `Function.prototype`, or any other built‑in prototype, the guard does not fire.
+`Reflect.getPrototypeOf({})` only matches `Object.prototype`. When traversal resolves `currentObject` to `Array.prototype`, `Function.prototype`, or another built-in prototype, the check does not fire.
 
-The PoC vectors in this repository exercise those gaps by:
+The vectors in `pocs/prototype-pollution-poc.js` hit this gap by:
 
-- Starting from a non‑plain root (`[]` or `{ data: [] }`)
-- Walking the chain via `__proto__` and `constructor.__proto__`
-- Writing into properties on the resulting prototype object
+- Starting from a non-plain root (`[]` or `{ data: [] }`)
+- Walking the prototype chain through `__proto__` or `constructor.__proto__`
+- Writing properties onto the resolved built-in prototype
 
 ---
 
 ## 4. Impact
 
-The impact is process‑wide and persistent until the Node.js process restarts:
+Mutations persist across the Node.js process until restart:
 
-- Methods on `Array.prototype` such as `toString`, `join`, or `map` can be overridden, affecting every array created in the process.
-- Properties added to `Function.prototype` are visible on every function value, including framework‑level handlers and callbacks.
-- Applications that rely on these built‑ins for authorisation checks, data validation, or routing can be steered into incorrect behaviour.
+- Overriding `Array.prototype` methods (`toString`, `join`, `map`, `includes`) affects every array in the process.
+- Properties added to `Function.prototype` appear on every function value, including framework handlers and callbacks.
+- Downstream apps relying on these built-ins for authorization checks, validation, or routing can be steered into broken behavior.
 
-In practice, this makes it possible to build exploit chains that look like:
+Concrete failure modes include:
 
-- Denial of service by replacing `Array.prototype.map` with a non‑function value.
-- Privilege bypass by overriding `Array.prototype.includes` used in role checks.
-- Code‑execution style attacks in template engines that rely on function and array behaviour.
+- Denial of service by replacing `Array.prototype.map` with a non-function value.
+- Logic/auth bypass by overriding `Array.prototype.includes` in role checks.
+- Code-execution gadgets in template engines or helpers sensitive to inherited function/array properties.
 
-The existing `Object.prototype` guard gives the impression that "prototype pollution has been fixed" for this package,
-while the bypass vectors show that a meaningful portion of the attack surface remains exposed.
+Because v4.0.0 ships an explicit `Object.prototype` guard, consumers may assume prototype pollution is closed even though non-plain roots remain exposed.
 
 ---
 
 ## 5. Additional Pitfalls in `nested-property`
 
-Beyond the prototype guard, the traversal and helper functions in `nested-property` exhibit other behaviours that are important for defenders to understand:
+Alongside the incomplete prototype guard, a few other traversal behaviors are worth noting if you accept untrusted paths:
 
-- **Mass assignment:** Using `nested-property.set()` to apply unfiltered JSON to backend objects can overwrite sibling properties such as `role`.
-  See `pocs/mass-assignment-poc.js` for a minimal reproduction.
-- **Type confusion:** Numeric segments in paths cause implicit array creation (`settings.0.theme`), which can break application logic that expects a plain object.
-  See `pocs/type-confusion-poc.js`.
-- **Fail‑open error handling:** The implementation of `hasOwn` wraps property checks in generic `try/catch` blocks and returns `false` on `TypeError`,
-  enabling an attacker to shadow `hasOwnProperty` and bypass validation. See `pocs/fail-open-poc.js`.
-
-These behaviours combine with the incomplete prototype guard to make secure use of `nested-property` non‑trivial in code that accepts user‑controlled paths.
+- **Mass assignment:** Passing unfiltered JSON paths into `nested-property.set()` can overwrite sibling fields such as `role`. See [`pocs/mass-assignment-poc.js`](./pocs/mass-assignment-poc.js).
+- **Type confusion:** Numeric path segments implicitly create arrays (`settings.0.theme`), breaking code that expects plain objects. See [`pocs/type-confusion-poc.js`](./pocs/type-confusion-poc.js).
+- **Fail-open error handling:** `hasOwn` wraps property checks in a broad `try/catch` and returns `false` on `TypeError`, letting shadowed `hasOwnProperty` values bypass checks. See [`pocs/fail-open-poc.js`](./pocs/fail-open-poc.js).
 
 ---
 
 ## 6. Remediation Sketch
 
-The file [`fix-recommendation.js`](./fix-recommendation.js) contains a concrete patch sketch that closes the gaps exercised by this repository.
-At a high level, the defensive pattern is:
+[`fix-recommendation.js`](./fix-recommendation.js) outlines a drop-in defensive fix covering these cases:
 
-- Treat a small set of built‑in prototypes (`Object.prototype`, `Array.prototype`, `Function.prototype`, etc.) as non‑writable from user input.
-- Deny paths that include dangerous segments such as `__proto__`, `constructor`, or `prototype`.
-- Remove generic `try/catch` blocks around validation logic so that type errors propagate to the caller instead of failing open.
+- Block writes to built-in prototypes (`Object.prototype`, `Array.prototype`, `Function.prototype`, etc.), not just `Object.prototype`.
+- Reject path segments containing `__proto__`, `constructor`, or `prototype`.
+- Drop the broad `try/catch` around `hasOwn` so type errors propagate instead of failing open.
 
-The `npm run fix` script runs this patch sketch against the PoC vectors and reports which paths are blocked and which are allowed.
+Run `npm run fix` to test the patch sketch against the PoC vectors and inspect which paths are rejected vs. allowed.
 
 ---
 
 ## 7. Disclosure and Status
 
-- Vulnerability confirmed on Node.js v22.22.2 with `nested-property@4.0.0`.
-- Reported to Snyk, MITRE CVE Program, and the `webdav` maintainer.
-- As of June 4, 2026, no patch has shipped and the issue remains unaddressed upstream.
+- Confirmed on Node.js v22.22.2 with `nested-property@4.0.0`.
+- Reported to the `nested-property` maintainer, Snyk, MITRE CVE Program, and the `webdav` maintainer.
+- As of June 4, 2026, no upstream patch has shipped.
 
-This repository is maintained as a self‑contained, reproducible description of the bug so that downstream users and maintainers
-can independently evaluate the risk for their own deployments.
-
-For questions about this work or coordination around further remediation, please open an issue on the GitHub repository.
+If you are consuming `nested-property` with user-supplied paths, validate and allowlist path segments before calling `set()` or switch to a maintained alternative. Open an issue on this repo for follow-up or coordination.
